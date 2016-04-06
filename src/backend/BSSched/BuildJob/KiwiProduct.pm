@@ -85,6 +85,7 @@ sub check {
   my $repo = $ctx->{'repo'};
   my $prp = "$projid/$repoid";
   my $reporoot = $gctx->{'reporoot'};
+  my $bconf = $ctx->{'conf'};
 
   # hmm, should get the arch from the kiwi info
   # but how can we map it to the buildarchs?
@@ -94,7 +95,11 @@ sub check {
   # compat to old OBS versions, prefer local...
   $buildarch = 'local' if $BSConfig::localarch && grep {$_ eq 'local'} @{$repo->{'arch'} || []};
   # localbuildarch is where we take the buildenv from
-  my $localbuildarch = $buildarch eq 'local' && $BSConfig::localarch ? $BSConfig::localarch : $buildarch;
+  $localbuildarch = $buildarch;
+  #if local set to localarch
+  $localbuildarch = $BSConfig::localarch if $buildarch eq 'local' && $BSConfig::localarch;
+  # override it if desired
+  $localbuildarch = $bconf->{'kiwilocalarch'} if $buildarch eq 'local' && $bconf->{'kiwilocalarch'};
   my $markerdir = "$reporoot/$projid/$repoid/$buildarch/$packid";
 
   my %imagearch = map {$_ => 1} @{$info->{'imagearch'} || []};
@@ -115,7 +120,6 @@ sub check {
 
   my @aprps = BSSched::BuildJob::expandkiwipath($info, $ctx->{'prpsearchpath'});
   my @bprps = @{$ctx->{'prpsearchpath'}};
-  my $bconf = $ctx->{'conf'};
 
   if (!@{$repo->{'path'} || []}) {
     # have no configured path, use repos from kiwi file instead
@@ -437,6 +441,7 @@ sub build {
   my $srcmd5 = $pdata->{'srcmd5'};
   my $job = BSSched::BuildJob::jobname($prp, $packid);
   my $myjobsdir = $gctx->{'myjobsdir'};
+  my $localbuildarch;
   return ('scheduled', "$job-$srcmd5") if -s "$myjobsdir/$job-$srcmd5";
   my @otherjobs = grep {/^\Q$job\E-[0-9a-f]{32}$/} ls($myjobsdir);
   $job = "$job-$srcmd5";
@@ -447,7 +452,11 @@ sub build {
     BSSched::BuildJob::killjob($gctx, $otherjob);
   }
 
-  my $localbuildarch = $myarch eq 'local' && $BSConfig::localarch ? $BSConfig::localarch : $myarch;
+  $localbuildarch = $myarch;
+  #if local set to localarch
+  $localbuildarch = $BSConfig::localarch if $myarch eq 'local' && $BSConfig::localarch; 
+  # override if prjconf wants it
+  $localbuildarch = $bconf->{'kiwilocalarch'} if $myarch eq 'local' && $bconf->{'kiwilocalarch'};
   my $now = time(); # ensure that we use the same time in all logs
 
   my $syspath;
