@@ -21,6 +21,8 @@
     debuginfo flags
   binarydownload
     binarydownload flags
+  url
+    project url
 -->
 <grammar ns="http://buildservice.org/api" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
 
@@ -157,6 +159,11 @@
           <ref name="repository-element"/>
         </zeroOrMore>
 
+        <optional>
+          <element ns="" name="url">
+            <text/>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
